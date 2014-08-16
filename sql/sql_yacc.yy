@@ -2373,8 +2373,7 @@ create:
             lex->query_tables->open_strategy= TABLE_LIST::OPEN_STUB;
             lex->create_info.options= ($1 | $2 | $4);
             lex->create_info.default_table_charset= NULL;
-            lex->name.str= 0;
-            lex->name.length= 0;
+            lex->name= null_lex_str;
             lex->create_last_non_select_table= lex->last_table();
           }
           create_body
@@ -7028,8 +7027,7 @@ string_list:
 alter:
           ALTER
           {
-            Lex->name.str= 0;
-            Lex->name.length= 0;
+            Lex->name= null_lex_str;
             Lex->sql_command= SQLCOM_ALTER_TABLE;
             Lex->duplicates= DUP_ERROR; 
             Lex->col_list.empty();
@@ -7250,7 +7248,7 @@ opt_ev_sql_stmt:
         ;
 
 ident_or_empty:
-          /* empty */ { $$.str= 0; $$.length= 0; }
+          /* empty */ { $$= null_lex_str; }
         | ident { $$= $1; }
         ;
 
@@ -12895,8 +12893,7 @@ flush_option:
         | LOGS_SYM
           {
             Lex->type|= REFRESH_LOG;
-            Lex->relay_log_connection_name.str= (char*) "";
-            Lex->relay_log_connection_name.length= 0;
+            Lex->relay_log_connection_name= empty_lex_str;
           }
         | STATUS_SYM
           { Lex->type|= REFRESH_STATUS; }
