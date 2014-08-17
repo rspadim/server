@@ -1676,7 +1676,7 @@ bool my_yyoverflow(short **a, YYSTYPE **b, ulong *yystacksize);
         table_option opt_if_not_exists create_or_replace opt_no_write_to_binlog
         opt_temporary all_or_any opt_distinct
         opt_ignore_leaves fulltext_options spatial_type union_option
-        field_def
+        field_def opt_not
         union_opt select_derived_init transaction_access_mode_types
         opt_natural_language_mode opt_query_expansion
         opt_ev_status opt_ev_on_completion ev_on_completion opt_ev_comment
@@ -2626,16 +2626,11 @@ opt_ev_on_completion:
         ;
 
 ev_on_completion:
-          ON COMPLETION_SYM PRESERVE_SYM
+          ON COMPLETION_SYM opt_not PRESERVE_SYM
           {
-            Lex->event_parse_data->on_completion=
-                                  Event_parse_data::ON_COMPLETION_PRESERVE;
-            $$= 1;
-          }
-        | ON COMPLETION_SYM NOT_SYM PRESERVE_SYM
-          {
-            Lex->event_parse_data->on_completion=
-                                  Event_parse_data::ON_COMPLETION_DROP;
+            Lex->event_parse_data->on_completion= $3
+                                    ? Event_parse_data::ON_COMPLETION_DROP
+                                    : Event_parse_data::ON_COMPLETION_PRESERVE;
             $$= 1;
           }
         ;
@@ -2801,8 +2796,7 @@ sp_chistic:
 /* Create characteristics */
 sp_c_chistic:
           sp_chistic            { }
-        | DETERMINISTIC_SYM     { Lex->sp_chistics.detistic= TRUE; }
-        | not DETERMINISTIC_SYM { Lex->sp_chistics.detistic= FALSE; }
+        | opt_not DETERMINISTIC_SYM { Lex->sp_chistics.detistic= ! $1; }
         ;
 
 sp_suid:
@@ -15624,6 +15618,10 @@ begin:
             lex->start_transaction_opt= 0;
           }
           opt_work {}
+
+opt_not:
+        /* nothing */  { $$= 0; }
+        | not          { $$= 1; }
         ;
 
 opt_work:
