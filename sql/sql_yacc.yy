@@ -1296,7 +1296,6 @@ bool my_yyoverflow(short **a, YYSTYPE **b, ulong *yystacksize);
 %token  NATURAL                       /* SQL-2003-R */
 %token  NCHAR_STRING
 %token  NCHAR_SYM                     /* SQL-2003-R */
-%token  NDBCLUSTER_SYM
 %token  NE                            /* OPERATOR */
 %token  NEG
 %token  NEW_SYM                       /* SQL-2003-R */
@@ -14263,7 +14262,6 @@ keyword_sp:
         | NAMES_SYM                {}
         | NATIONAL_SYM             {}
         | NCHAR_SYM                {}
-        | NDBCLUSTER_SYM           {}
         | NEXT_SYM                 {}
         | NEW_SYM                  {}
         | NO_WAIT_SYM              {}

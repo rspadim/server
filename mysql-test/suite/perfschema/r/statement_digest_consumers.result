@@ -125,43 +125,43 @@ DROP TRIGGER trg;
 ####################################
 SELECT schema_name, digest, digest_text, count_star FROM performance_schema.events_statements_summary_by_digest;
 schema_name	digest	digest_text	count_star
-statements_digest	54be536bf8c0547bb1deba404fe8d4d9	TRUNCATE TABLE performance_schema . events_statements_summary_by_digest 	1
-statements_digest	5cec822a2b4afb0361fcafbd35812d3f	SELECT ? FROM t1 	1
-statements_digest	9cc532095a17d9c7e019997198b034bd	SELECT ? FROM `t1` 	1
-statements_digest	ca0acd401eaac519b14133957a035500	SELECT ?, ... FROM t1 	2
-statements_digest	0016daff53145841d2c1b94dd45d59f2	SELECT ? FROM t2 	1
-statements_digest	a2190aad3dad05e7a47ededa3dc5fbba	SELECT ?, ... FROM t2 	2
-statements_digest	be3901910569c5698c97b6eb861a2417	INSERT INTO t1 VALUES (?) 	1
-statements_digest	96be514897ecce5889ce3bccfdaee2bc	INSERT INTO t2 VALUES (?) 	1
-statements_digest	c9b90c24e4e4a2e6c6d3b00124fb4e24	INSERT INTO t3 VALUES (...) 	4
-statements_digest	ace1b379cc20a6c189035362dc8960eb	INSERT INTO t4 VALUES (...) 	1
-statements_digest	fee63a8398ac269df45ab5578053d8cf	INSERT INTO t5 VALUES (...) 	1
-statements_digest	db4d5d49a7448126279ac33dcd27abb0	INSERT INTO t1 VALUES (?) /* , ... */ 	2
-statements_digest	ddd193e1da292c9cf1d1d11e04df34d7	INSERT INTO t3 VALUES (...) /* , ... */ 	1
-statements_digest	a807cdb22b8f6a0b663917f97fe12fab	INSERT INTO t5 VALUES (...) /* , ... */ 	1
-statements_digest	7b55a76a009c39141f5c8f2ab01b4786	INSERT INTO t1 VALUES ( NULL ) 	1
-statements_digest	6bebbe9ad352b632cb52990696b5eb06	INSERT INTO t6 VALUES (...) 	5
-statements_digest	22a91f68f552af38d2241be9c075a76a	SELECT ? + ? 	3
-statements_digest	9ea9ecb4e86ec71510f7f525bbc33104	SELECT ? 	1
+statements_digest	354e9ece085f9d17ef47f3ff4683e900	TRUNCATE TABLE performance_schema . events_statements_summary_by_digest 	1
+statements_digest	7d6159ae086382a49d0fe572fa185e09	SELECT ? FROM t1 	1
+statements_digest	20d0452ef6f784687f18d54bdec4f3bf	SELECT ? FROM `t1` 	1
+statements_digest	d240067bc63acc26cb74003615b53436	SELECT ?, ... FROM t1 	2
+statements_digest	50d7e3485497b3a6e348d465db04e523	SELECT ? FROM t2 	1
+statements_digest	5baac1b3d6dbdc82600989108a747da0	SELECT ?, ... FROM t2 	2
+statements_digest	708220893b7e6842f6375137066b03db	INSERT INTO t1 VALUES (?) 	1
+statements_digest	8b18c60b5f8f2575ad128938a4982825	INSERT INTO t2 VALUES (?) 	1
+statements_digest	9dfea71bcb1e6f99c43861297b36c89d	INSERT INTO t3 VALUES (...) 	4
+statements_digest	10c5ad362af6dc45bb9ee675775e2290	INSERT INTO t4 VALUES (...) 	1
+statements_digest	66568ba3e758b2c1d8a8f007dec5b167	INSERT INTO t5 VALUES (...) 	1
+statements_digest	0f19af96d341be5bad78f8aff74e2814	INSERT INTO t1 VALUES (?) /* , ... */ 	2
+statements_digest	e28e6f42ea94ecb6ea7c7b75ad00ac78	INSERT INTO t3 VALUES (...) /* , ... */ 	1
+statements_digest	7ea0d84be32f19657eaa4244e2eacb17	INSERT INTO t5 VALUES (...) /* , ... */ 	1
+statements_digest	4276e6ffd425c37239c1fee1cf73143a	INSERT INTO t1 VALUES ( NULL ) 	1
+statements_digest	fea8ae550604d51e851a6ce288996597	INSERT INTO t6 VALUES (...) 	5
+statements_digest	c7d334d622f7239414706469af7666bf	SELECT ? + ? 	3
+statements_digest	e3795d8811c3a7c7c837694d9981c9ac	SELECT ? 	1
 statements_digest	3b085ab0d2063dfca1a39212e3ea1831	CREATE SCHEMA statements_digest_temp 	2
 statements_digest	09f9fabef2feb9a54ba01455e5ae83b9	DROP SCHEMA statements_digest_temp 	2
-statements_digest	cb5deeb5b4fd13b4a35cb68fb152357b	SELECT ? FROM no_such_table 	1
-statements_digest	e31381c2456360fb73bf1700fbe94243	CREATE TABLE dup_table ( c CHARACTER (?) ) 	2
-statements_digest	4a5bcfc4f64e714131a8f3314a224367	DROP TABLE dup_table 	1
-statements_digest	a11239a8dcde8b6c35ba7176c9799868	INSERT INTO t11 VALUES (?) 	1
-statements_digest	46a1658b73f99ee7160fae631fb93a09	SHOW WARNINGS 	1
-statements_digest	8f991811edef3847b3899adf74f25cd2	PREPARE stmt FROM ? 	1
+statements_digest	38092c9b1225b73d98e999e7148c33a9	SELECT ? FROM no_such_table 	1
+statements_digest	8179089a536deb0da25fbb1fd8021c7b	CREATE TABLE dup_table ( c CHARACTER (?) ) 	2
+statements_digest	f9961df18d45c163b8426e2a208dbfde	DROP TABLE dup_table 	1
+statements_digest	839f247328709910b0f90f4586a7a8d0	INSERT INTO t11 VALUES (?) 	1
+statements_digest	dc5646a5fe6241e9b5ac6484d77116c7	SHOW WARNINGS 	1
+statements_digest	6ca43ad33c5069e77775d2a9ffee0902	PREPARE stmt FROM ? 	1
 statements_digest	3ab1e87eabd9688edf919754cce6348b	EXECUTE stmt 	2
-statements_digest	f89bf06a01e83eece5a6b14e73f33b6e	DEALLOCATE PREPARE stmt 	1
-statements_digest	036728a7f9500af03c75a7b2f52598d6	CREATE PROCEDURE p1 ( ) BEGIN SELECT * FROM t12 ; END 	1
+statements_digest	decb49803e65362775237cc1fc29505b	DEALLOCATE PREPARE stmt 	1
+statements_digest	1e2148741b6cdb995100ad09ef7a0547	CREATE PROCEDURE p1 ( ) BEGIN SELECT * FROM t12 ; END 	1
 statements_digest	e58546d78a966f2323cd92a256346c25	CALL p1 ( ) 	2
-statements_digest	7ae8f5e01f2be4e289a49482109ebe15	DROP PROCEDURE p1 	1
-statements_digest	033a4fd9798287673b42eb44d2f4217f	CREATE FUNCTION `func` ( a INTEGER , b INTEGER ) RETURNS INTEGER (?) RETURN a + b 	1
-statements_digest	50918248239b985150c045c74d4bc0a7	SELECT func (...) 	2
+statements_digest	b70324f0721ea00e61fc724604aaafd9	DROP PROCEDURE p1 	1
+statements_digest	56e7586715484a1586caf55c753f3cb0	CREATE FUNCTION `func` ( a INTEGER , b INTEGER ) RETURNS INTEGER (?) RETURN a + b 	1
+statements_digest	3e1f7dd1885fc1f877563fffbc9f3e8e	SELECT func (...) 	2
 statements_digest	0b5a5297689c5036def6af8e8a8ce113	DROP FUNCTION func 	1
-statements_digest	f0b5ccca009965ffa9e2e8d9ff27e7a8	CREATE TRIGGER trg BEFORE INSERT ON t12 FOR EACH ROW SET @ ? := ? 	1
-statements_digest	0f202992bc6f282752cc1dd8f4799efb	INSERT INTO t12 VALUES (?) 	2
-statements_digest	6c9ad477f1626f7bccd72257f487ecfb	DROP TRIGGER trg 	1
+statements_digest	7f1b8c29fa7ba11dde25ff5c2a4bef35	CREATE TRIGGER trg BEFORE INSERT ON t12 FOR EACH ROW SET @ ? := ? 	1
+statements_digest	f9e0beae56db9fd5e01fadcdd57a6cb7	INSERT INTO t12 VALUES (?) 	2
+statements_digest	7ca935044fcf88b33f6c6f5ffb167786	DROP TRIGGER trg 	1
 SELECT digest, digest_text FROM performance_schema.events_statements_current;
 digest	digest_text
 ####################################
