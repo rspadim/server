@@ -2119,10 +2119,6 @@ int prepare_schema_table(THD *thd, LEX *lex, Table_ident *table_ident,
     thd->profiling.discard_current_query();
 #endif
     break;
-  case SCH_USER_STATS:
-  case SCH_CLIENT_STATS:
-    if (check_global_access(thd, SUPER_ACL | PROCESS_ACL, true))
-      DBUG_RETURN(1);
   default:
     break;
   }
