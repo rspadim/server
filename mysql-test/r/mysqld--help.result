@@ -1066,7 +1066,7 @@ The following options may be given as the first argument:
  --wait-timeout=#    The number of seconds the server waits for activity on a
  connection before closing it
  --wsrep-OSU-method[=name] 
- Method for Online Schema Upgrade
+ Method for Online Schema Upgrade. One of: TOI, RSU
  --wsrep-auto-increment-control 
  To automatically control the assignment of autoincrement
  variables
@@ -1092,7 +1092,8 @@ The following options may be given as the first argument:
  --wsrep-drupal-282555-workaround 
  To use a workaround forbad autoincrement value
  --wsrep-forced-binlog-format=name 
- binlog format to take effect over user's choice
+ binlog format to take effect over user's choice. One of: 
+ MIXED, STATEMENT, ROW, NONE
  --wsrep-load-data-splitting 
  To commit LOAD DATA transaction after every 10K rows
  inserted
@@ -1350,7 +1351,7 @@ performance-schema-max-rwlock-instances -1
 performance-schema-max-socket-classes 10
 performance-schema-max-socket-instances -1
 performance-schema-max-stage-classes 150
-performance-schema-max-statement-classes 181
+performance-schema-max-statement-classes 178
 performance-schema-max-table-handles -1
 performance-schema-max-table-instances -1
 performance-schema-max-thread-classes 50
@@ -1441,7 +1442,9 @@ thread-pool-stall-limit 500
 thread-stack 294912
 time-format %H:%i:%s
 timed-mutexes FALSE
-tmp-table-size 16777216
+tmp-table-size 167772140915 14:45:07 [Note] WSREP: Service disconnected.
+140915 14:45:08 [Note] WSREP: Some threads may fail to exit.
+16
 transaction-alloc-block-size 8192
 transaction-isolation REPEATABLE-READ
 transaction-prealloc-size 4096

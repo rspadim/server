@@ -377,6 +377,7 @@ void init_update_queries(void)
   sql_command_flags[SQLCOM_SHOW_EVENTS]=      CF_STATUS_COMMAND | CF_REEXECUTION_FRAGILE;
   sql_command_flags[SQLCOM_SHOW_OPEN_TABLES]= CF_STATUS_COMMAND | CF_REEXECUTION_FRAGILE;
   sql_command_flags[SQLCOM_SHOW_PLUGINS]=     CF_STATUS_COMMAND;
+  sql_command_flags[SQLCOM_SHOW_GENERIC]=     CF_STATUS_COMMAND;
   sql_command_flags[SQLCOM_SHOW_FIELDS]=      CF_STATUS_COMMAND | CF_REEXECUTION_FRAGILE;
   sql_command_flags[SQLCOM_SHOW_KEYS]=        CF_STATUS_COMMAND | CF_REEXECUTION_FRAGILE;
   sql_command_flags[SQLCOM_SHOW_VARIABLES]=   CF_STATUS_COMMAND | CF_REEXECUTION_FRAGILE;
@@ -411,10 +412,6 @@ void init_update_queries(void)
   sql_command_flags[SQLCOM_SHOW_PROFILES]=    CF_STATUS_COMMAND;
   sql_command_flags[SQLCOM_SHOW_PROFILE]=     CF_STATUS_COMMAND;
   sql_command_flags[SQLCOM_BINLOG_BASE64_EVENT]= CF_STATUS_COMMAND | CF_CAN_GENERATE_ROW_EVENTS;
-  sql_command_flags[SQLCOM_SHOW_CLIENT_STATS]= CF_STATUS_COMMAND;
-  sql_command_flags[SQLCOM_SHOW_USER_STATS]=   CF_STATUS_COMMAND;
-  sql_command_flags[SQLCOM_SHOW_TABLE_STATS]=  CF_STATUS_COMMAND;
-  sql_command_flags[SQLCOM_SHOW_INDEX_STATS]=  CF_STATUS_COMMAND;
   sql_command_flags[SQLCOM_SHOW_TABLES]=       (CF_STATUS_COMMAND | CF_SHOW_TABLE_COMMAND | CF_REEXECUTION_FRAGILE);
   sql_command_flags[SQLCOM_SHOW_TABLE_STATUS]= (CF_STATUS_COMMAND | CF_SHOW_TABLE_COMMAND | CF_REEXECUTION_FRAGILE);
 
@@ -2126,32 +2123,15 @@ int prepare_schema_table(THD *thd, LEX *lex, Table_ident *table_ident,
   case SCH_CLIENT_STATS:
     if (check_global_access(thd, SUPER_ACL | PROCESS_ACL, true))
       DBUG_RETURN(1);
-  case SCH_TABLE_STATS:
-  case SCH_INDEX_STATS:
-  case SCH_OPEN_TABLES:
-  case SCH_PROCEDURES:
-  case SCH_CHARSETS:
-  case SCH_ENGINES:
-  case SCH_COLLATIONS:
-  case SCH_COLLATION_CHARACTER_SET_APPLICABILITY:
-  case SCH_USER_PRIVILEGES:
-  case SCH_SCHEMA_PRIVILEGES:
-  case SCH_TABLE_PRIVILEGES:
-  case SCH_COLUMN_PRIVILEGES:
-  case SCH_TABLE_CONSTRAINTS:
-  case SCH_KEY_COLUMN_USAGE:
   default:
     break;
   }
   
   SELECT_LEX *select_lex= lex->current_select;
-  if (make_schema_select(thd, select_lex, schema_table_idx))
-  {
+  if (make_schema_select(thd, select_lex, get_schema_table(schema_table_idx)))
     DBUG_RETURN(1);
-  }
-  TABLE_LIST *table_list= select_lex->table_list.first;
-  table_list->schema_select_lex= schema_select_lex;
-  table_list->schema_table_reformed= 1;
+
+  select_lex->table_list.first->schema_select_lex= schema_select_lex;
   DBUG_RETURN(0);
 }
 
@@ -2807,7 +2787,7 @@ mysql_execute_command(THD *thd)
   case SQLCOM_SHOW_TRIGGERS:
   case SQLCOM_SHOW_TABLE_STATUS:
   case SQLCOM_SHOW_OPEN_TABLES:
-  case SQLCOM_SHOW_PLUGINS:
+  case SQLCOM_SHOW_GENERIC:
   case SQLCOM_SHOW_FIELDS:
   case SQLCOM_SHOW_KEYS:
 #ifndef WITH_WSREP
@@ -2817,14 +2797,11 @@ mysql_execute_command(THD *thd)
   case SQLCOM_SHOW_STORAGE_ENGINES:
   case SQLCOM_SHOW_PROFILE:
 #endif /* WITH_WSREP */
-  case SQLCOM_SHOW_CLIENT_STATS:
-  case SQLCOM_SHOW_USER_STATS:
-  case SQLCOM_SHOW_TABLE_STATS:
-  case SQLCOM_SHOW_INDEX_STATS:
   case SQLCOM_SELECT:
 #ifdef WITH_WSREP
     if (WSREP_CLIENT(thd) && wsrep_sync_wait(thd))
       goto error;
+  case SQLCOM_SHOW_PLUGINS:
   case SQLCOM_SHOW_VARIABLES:
   case SQLCOM_SHOW_CHARSETS:
   case SQLCOM_SHOW_COLLATIONS:
