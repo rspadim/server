@@ -1358,6 +1358,7 @@ drop table if exists t1;drop table if exists t1;\
 drop table if exists t1;drop table if exists t1;\
 drop table if exists t1;drop table if exists t1;";
 select * from information_schema.global_variables where variable_name='init_connect';
+select * from information_schema.global_variables where variable_name like 'init%';
 set global init_connect="";
 
 #
