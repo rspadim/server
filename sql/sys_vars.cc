@@ -1456,7 +1456,7 @@ static Sys_var_gtid_binlog_pos Sys_gtid_binlog_pos(
 
 
 uchar *
-Sys_var_gtid_binlog_pos::global_value_ptr(THD *thd, LEX_STRING *base)
+Sys_var_gtid_binlog_pos::global_value_ptr(THD *thd, const LEX_STRING *base)
 {
   char buf[128];
   String str(buf, sizeof(buf), system_charset_info);
@@ -1484,7 +1484,7 @@ static Sys_var_gtid_current_pos Sys_gtid_current_pos(
 
 
 uchar *
-Sys_var_gtid_current_pos::global_value_ptr(THD *thd, LEX_STRING *base)
+Sys_var_gtid_current_pos::global_value_ptr(THD *thd, const LEX_STRING *base)
 {
   String str;
   char *p;
@@ -1569,7 +1569,7 @@ Sys_var_gtid_slave_pos::global_update(THD *thd, set_var *var)
 
 
 uchar *
-Sys_var_gtid_slave_pos::global_value_ptr(THD *thd, LEX_STRING *base)
+Sys_var_gtid_slave_pos::global_value_ptr(THD *thd, const LEX_STRING *base)
 {
   String str;
   char *p;
@@ -1687,7 +1687,7 @@ Sys_var_gtid_binlog_state::global_update(THD *thd, set_var *var)
 
 
 uchar *
-Sys_var_gtid_binlog_state::global_value_ptr(THD *thd, LEX_STRING *base)
+Sys_var_gtid_binlog_state::global_value_ptr(THD *thd, const LEX_STRING *base)
 {
   char buf[512];
   String str(buf, sizeof(buf), system_charset_info);
@@ -1720,7 +1720,7 @@ static Sys_var_last_gtid Sys_last_gtid(
 
 
 uchar *
-Sys_var_last_gtid::session_value_ptr(THD *thd, LEX_STRING *base)
+Sys_var_last_gtid::session_value_ptr(THD *thd, const LEX_STRING *base)
 {
   char buf[10+1+10+1+20+1];
   String str(buf, sizeof(buf), system_charset_info);
@@ -4104,7 +4104,7 @@ bool Sys_var_rpl_filter::set_filter_value(const char *value, Master_info *mi)
   return status;
 }
 
-uchar *Sys_var_rpl_filter::global_value_ptr(THD *thd, LEX_STRING *base)
+uchar *Sys_var_rpl_filter::global_value_ptr(THD *thd, const LEX_STRING *base)
 {
   char buf[256];
   String tmp(buf, sizeof(buf), &my_charset_bin);
