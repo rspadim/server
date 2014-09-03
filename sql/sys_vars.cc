@@ -2100,6 +2100,7 @@ static Sys_var_mybool Sys_old_passwords(
        "Use old password encryption method (needed for 4.0 and older clients)",
        SESSION_VAR(old_passwords), CMD_LINE(OPT_ARG), DEFAULT(FALSE),
        NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(check_old_passwords));
+export sys_var *Sys_old_passwords_ptr= &Sys_old_passwords; // for sql_acl.cc
 
 static Sys_var_ulong Sys_open_files_limit(
        "open_files_limit",
@@ -4311,7 +4312,7 @@ static bool update_max_relay_log_size(sys_var *self, THD *thd, Master_info *mi)
 static Sys_var_multi_source_ulong
 Sys_max_relay_log_size( "max_relay_log_size",
                         "relay log will be rotated automatically when the "
-                        "size exceeds this value.  If 0 are startup, it's "
+                        "size exceeds this value.  If 0 at startup, it's "
                         "set to max_binlog_size",
                         SESSION_VAR(max_relay_log_size),
                         CMD_LINE(REQUIRED_ARG),
