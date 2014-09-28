@@ -23,7 +23,6 @@
 #include <mysql/auth_dialog_client.h>
 
 /********************* SERVER SIDE ****************************************/
-
 static int otp_auth_interface(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *info)
 {
   unsigned char *pkt;
@@ -114,3 +113,12 @@ mysql_declare_plugin(dialog)
   NULL,
   0,
 }mysql_declare_plugin_end;
+
+/* 
+	TODO: include a function to test OTP, 
+	for example SELECT GET_OTP('USER') 
+	this will allow admin to create user and check if current OTP is ok or not 
+	before allowing user to login and start brute force counter
+*/
+
+
