@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <mysql/auth_dialog_client.h>
 
-/********************* SERVER SIDE ****************************************/
+/********************* AUTH PLUGIN ****************************************/
 static int otp_auth_interface(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *info)
 {
   unsigned char *pkt;
@@ -97,6 +97,58 @@ static struct st_mysql_auth otp_handler=
   otp_auth_interface
 };
 
+/********************* UDF FUNCTION ****************************************/
+/* 
+	TODO: include a function to test OTP, 
+	for example SELECT GET_OTP('USER') 
+	this will allow admin to create user and check if current OTP is ok or not 
+	before allowing user to login and start brute force counter
+*/
+my_bool GET_OTP_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
+    if (args->arg_count > 1) {
+        strmov(message,"Usage: GET_OTP( <user_name> )");
+        return 1;
+    }
+    if (args->arg_count == 1) {
+        // one specific user OTP
+	// check permission (GRANT)
+        args->arg_type[0] = STRING_RESULT;
+    } else {
+	// current user OTP
+    }
+/*
+    if ( !(initid->ptr = 
+        (char *) malloc( sizeof(char) * MAX_IMAGE_SIZE ) ) ) {
+        strmov(message, "Couldn't allocate memory!");
+        return 1;
+    }
+    bzero( initid->ptr, sizeof(char) * MAX_IMAGE_SIZE );
+*/
+    return 0;
+}
+
+/* This routine frees the memory allocated */
+void GET_OTP_deinit(UDF_INIT *initid) {
+    if (initid->ptr)
+        free(initid->ptr);
+}
+
+/* Return NULL if can't get a OTP */
+char *GET_OTP(UDF_INIT *initid, UDF_ARGS *args, char *result,
+               unsigned long *length, char *is_null, char *error) {
+/*
+	strncpy( filename, args->args[0], args->lengths[0] );
+
+	*is_null = 1;	
+        return 0;
+*/
+    *length = (unsigned long)some_size;
+    return initid->ptr;
+}
+
+
+/********************* DECLARATIONS ****************************************/
+
 mysql_declare_plugin(dialog)
 {
   MYSQL_AUTHENTICATION_PLUGIN,
@@ -113,12 +165,5 @@ mysql_declare_plugin(dialog)
   NULL,
   0,
 }mysql_declare_plugin_end;
-
-/* 
-	TODO: include a function to test OTP, 
-	for example SELECT GET_OTP('USER') 
-	this will allow admin to create user and check if current OTP is ok or not 
-	before allowing user to login and start brute force counter
-*/
 
 
