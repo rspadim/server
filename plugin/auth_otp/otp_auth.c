@@ -22,6 +22,13 @@
 #include <stdlib.h>
 #include <mysql/auth_dialog_client.h>
 
+/* TODO: 
+   IMPLEMENT TOTP PASSWORD GENERATOR FUNCTION (GENERATE A PASSWORD WITH TIME+KEY+TIME_STEP)
+   IMPLEMENT HOTP PASSWORD GENERATOR FUNCTION (GENERATE A PASSWORD WITH COUNTER+KEY)
+   IMPLEMENT S/KEY PASSWORD - SAME AS HOTP BUT USING S/KEY LOGIC
+*/
+
+
 /********************* AUTH PLUGIN ****************************************/
 static int otp_auth_interface(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *info)
 {
