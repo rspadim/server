@@ -207,8 +207,7 @@ char *GET_OTP(UDF_INIT *initid, UDF_ARGS *args, char *result,
 	*is_null = 1;	
         return 0;
 */
-    with the current user information, return the current OTP password
-
+    with the current user information, return the current OTP password using create_user_otp() function;
 
     *length = (unsigned long)some_size;
     return initid->ptr;
