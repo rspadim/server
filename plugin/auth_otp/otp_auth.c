@@ -91,19 +91,54 @@ static int otp_auth_interface(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *inf
 	TODO: SHOULD WE USE RULES LIKE OTP, FOR EXAMPLE MANY USERS WITH SAME OTP?
 */
 
-  // (1) CHECK IF OTP IS OK
+
+  /* implement well known password check ?*/
+  if(well_know_password>0){
+    /* check if we got a well_know_password */
+    if (true){
+      remove_current_well_know_password_from_table();
+      /*login ok*/
+      reset_brute_force_counter();
+      // (LOGIN) SYNC COUNTER IF USING SKEY/HOTP
+      return CR_OK;
+    }
+  }
   
-  // (2) OK AND ONLY ONE LOGIN, CHECK LAST OTP = CURRENT OTP => (LOGIN)
-  
-  // (3) IF OK AND NO ONLY ONE LOGIN => (LOGIN)
-  
-  // (4) WRONG OTP CHECK IF WE SHOULD TRY AGAIN WITH TIME SKEW OR COUNTER SKEW (COUNTER_TIME_SKEW) IF TRUE, TRY AGAIN (1)
-  
-  // (5) WRONG OTP, INCREMENT BRUTE FORCE ATTACK COUNTER => DON'T ALLOW LOGIN
-  
-  // (LOGIN) SYNC COUNTER IF USING SKEY/HOTP
-  
-  return strcmp((const char *) pkt, "yes, of course") ? CR_ERROR : CR_OK;
+
+  current_time=startup_time=now();
+  current_counter=startup_counter=get_from_otp_table;
+  while(1){
+    // (1) CHECK IF OTP IS OK
+    current_otp_password = create_otp_password(
+    	otp_information,
+    	current_time,
+    	current_counter
+    	);
+    if (strcmp((const char *) pkt, current_otp_password)){
+      // (2) OK AND ONLY ONE LOGIN, CHECK LAST OTP = CURRENT OTP => (LOGIN)
+      // (3) IF OK AND NO ONLY ONE LOGIN => (LOGIN)
+      if ((one login == 'y' && last_otp_counter_timer==current_otp_counter_time) ||
+           one login != 'y'){
+        /*login ok*/
+        reset_brute_force_counter();
+        sync_counter (if using counter_time_skew)
+        // (LOGIN) SYNC COUNTER IF USING SKEY/HOTP
+        return CR_OK;
+      }else if (one login == 'y'){
+        increase_brute_force_counter();
+        return CR_ERROR;
+      }
+    }
+    // (4) WRONG OTP CHECK IF WE SHOULD TRY AGAIN WITH TIME SKEW OR COUNTER SKEW (COUNTER_TIME_SKEW) IF TRUE, TRY AGAIN (1)
+    if(counter_time_skew>0){
+      change_current_time_counter to a value before or after the startup_time/startup_counter;
+      continue; /*try again*/
+    }
+    // (5) WRONG OTP, INCREMENT BRUTE FORCE ATTACK COUNTER => DON'T ALLOW LOGIN
+    // sorry :(
+    increase_brute_force_counter();
+    return CR_ERROR;
+  }
 }
 
 static struct st_mysql_auth otp_handler=
