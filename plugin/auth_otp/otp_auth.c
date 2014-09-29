@@ -27,7 +27,10 @@
    IMPLEMENT HOTP PASSWORD GENERATOR FUNCTION (GENERATE A PASSWORD WITH COUNTER+KEY)
    IMPLEMENT S/KEY PASSWORD - SAME AS HOTP BUT USING S/KEY LOGIC
 */
-
+function create_totp();
+function create_hotp();
+function create_skey();
+function create_user_otp(); /* receive user otp table row and select what key should be used */
 
 /********************* AUTH PLUGIN ****************************************/
 static int otp_auth_interface(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *info)
@@ -140,7 +143,7 @@ static int otp_auth_interface(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *inf
       }
     }
     // (4) WRONG OTP CHECK IF WE SHOULD TRY AGAIN WITH TIME SKEW OR COUNTER SKEW (COUNTER_TIME_SKEW) IF TRUE, TRY AGAIN (1)
-    if(counter_time_skew>0){
+    if(counter_time_skew>0){ /* must check how TOTP/HOTP/SKEY do, there's a RFC */
       change_current_time_counter to a value before or after the startup_time/startup_counter;
       continue; /*try again*/
     }
