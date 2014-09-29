@@ -35,38 +35,48 @@ static int otp_auth_interface(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *inf
   unsigned char *pkt;
   int pkt_len;
   /* CHECK BRUTE FORCE, IF BRUTE FORCE CONDITION DON'T ALLOW LOGIN */
-  
+  if(user_brute_force_counter>max_user_brute_force_counter && max_user_brute_force_counter>0){
+    if(user_brute_force_time>now())
+      return CR_ERROR; /* sorry */
+    user_brute_force_counter=0;
+    reset_brute_force_counter(); /* save to table */
+  }
   
   /* send a password question */
   if (vio->write_packet(vio,
                         (const unsigned char *) PASSWORD_QUESTION "Password, please:",
                         18))
-    return CR_ERROR;
+    return CR_ERROR; /* ?increase brute force counter? */
 
   /* read the answer */
-  if ((pkt_len= vio->read_packet(vio, &pkt)) < 0)
+  if ((pkt_len= vio->read_packet(vio, &pkt)) < 0){
     /* MUST CHECK HOW NULL PASSWORD WORKS */
     /* INCREASE BRUTE FORCE COUNTER */
+    increase_brute_force_counter();
     return CR_ERROR;
-
+  }
   info->password_used= PASSWORD_USED_YES;
 
   /* fail if the password is wrong */
   // check with mysql.users table
-  if (strcmp((const char *) pkt, info->auth_string))
+  if (strcmp((const char *) pkt, info->auth_string)){
     /* INCREASE BRUTE FORCE COUNTER */
+    increase_brute_force_counter();
     return CR_ERROR;
+  }
 
   /* send otp question */
   if (vio->write_packet(vio,
                         (const unsigned char *) LAST_QUESTION "OTP:", /* INCLUDE OTP TYPE? */
                         5))
-    return CR_ERROR;
+    return CR_ERROR; /* ?increase brute force counter? */
 
   /* read the answer */
-  if ((pkt_len= vio->read_packet(vio, &pkt)) < 0)
+  if ((pkt_len= vio->read_packet(vio, &pkt)) < 0){
     /* INCREASE BRUTE FORCE COUNTER */
+    increase_brute_force_counter();
     return CR_ERROR;
+  }
 
   /* check the reply */
   
@@ -95,7 +105,7 @@ static int otp_auth_interface(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *inf
   /* implement well known password check ?*/
   if(well_know_password>0){
     /* check if we got a well_know_password */
-    if (true){
+    if (wkp_found()){
       remove_current_well_know_password_from_table();
       /*login ok*/
       reset_brute_force_counter();
@@ -157,15 +167,16 @@ static struct st_mysql_auth otp_handler=
 */
 my_bool GET_OTP_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
     if (args->arg_count > 1) {
-        strmov(message,"Usage: GET_OTP( <user_name> )");
+        strmov(message,"Usage: GET_OTP( <user_name> )"); /* use same primary key as otp table */
         return 1;
     }
     if (args->arg_count == 1) {
         // one specific user OTP
-	// check permission (GRANT)
+	check permission (GRANT);
         args->arg_type[0] = STRING_RESULT;
     } else {
-	// current user OTP
+	// current user OTP 
+	/*use the current username*/
     }
 /*
     if ( !(initid->ptr = 
@@ -193,6 +204,9 @@ char *GET_OTP(UDF_INIT *initid, UDF_ARGS *args, char *result,
 	*is_null = 1;	
         return 0;
 */
+    with the current user information, return the current OTP password
+
+
     *length = (unsigned long)some_size;
     return initid->ptr;
 }
