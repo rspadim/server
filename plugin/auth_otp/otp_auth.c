@@ -27,8 +27,8 @@
    IMPLEMENT HOTP PASSWORD GENERATOR FUNCTION (GENERATE A PASSWORD WITH COUNTER+KEY)
    IMPLEMENT S/KEY PASSWORD - SAME AS HOTP BUT USING S/KEY LOGIC
 */
-function create_totp();
-function create_hotp();
+function create_totp(); /* http://www.nongnu.org/oath-toolkit/ */
+function create_hotp(); /* http://www.nongnu.org/oath-toolkit/ */
 function create_skey();
 function create_user_otp(); /* receive user otp table row and select what key should be used */
 
