@@ -61,6 +61,28 @@ the structure...
 13) end =] source should not get here, since the while loop don't have a end, the end is: skew counter = max skew value from user table (check that we need a max value or we can get a DoS with very big values, i think a tinyint is ok)
 
 
+
+TABLE STRUCTURE:
+show create table otp_user
+
+CREATE TABLE `otp_user` (
+  `Host` varchar(60) NOT NULL DEFAULT '' COMMENT 'same value of host column of mysql.user',
+  `User` varchar(16) NOT NULL DEFAULT '' COMMENT 'same value of user column of mysql.user',
+  `otp_type` enum('TOTP','HOTP') NOT NULL DEFAULT 'TOTP' COMMENT 'OTP TYPE',
+  `secret` varchar(255) NOT NULL DEFAULT '' COMMENT 'otp password, each otp_type have a format',
+  `time_step` int(11) NOT NULL DEFAULT '0' COMMENT 'totp time slice, floor(time/time_step)*time_step',
+  `counter_time_skew` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'totp/hotp password skew, try others password time;time-30;time+30;etc, should not be big or possible DoS',
+  `brute_force_max` int(11) NOT NULL DEFAULT '0' COMMENT 'max brute force counter',
+  `brute_force_timeout` double NOT NULL DEFAULT '0' COMMENT 'how many seconds should wait after brute force detection',
+  `one_access` enum('Y','N') NOT NULL DEFAULT 'N' COMMENT 'ONLY ALLOW ONE ACCESS PER OTP PASSWORD (TOTP)',
+  `last_used_otp` bigint(20) NOT NULL DEFAULT '0' COMMENT 'last used otp (time in seconds or counter), use bigint since we can use >2039 year value',
+  `last_access_otp_skew` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'last used otp skew value, last_used otp + last_used skew will allow a better one access',
+  `brute_force_counter` int(11) NOT NULL DEFAULT '0' COMMENT 'current brute force counter, change to 0 to remove current brute force block',
+  `brute_force_block_time` bigint(20) NOT NULL DEFAULT '0' COMMENT 'next allowed login after brute force detected, change to 0 to remove current brute force block',
+  `wellknown_passwords` text NOT NULL COMMENT 'wellknow password separated by ";" character',
+  PRIMARY KEY (`Host`,`User`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8
+
 */
 	
 	
@@ -112,30 +134,6 @@ the structure...
   }
 
   /* check the reply */
-  
-/*
-	CREATE TABLE otp_user(
-		USER VARCHAR(255) NOT NULL DEFAULT '' COMMENT='USER FROM MYSQL.USER TABLE,MUST CHECK IF WE NEED INCLUDE HOST HERE',
-		TYPE ENUM('S/KEY','TOTP','HOTP') NOT NULL DEFAULT 'TOTP' COMMENT='OTP TYPE',
-		  - CHECK http://www.nongnu.org/oath-toolkit/coverage/liboath/usersfile.c.gcov.frameset.html
-		  -       THEY  IMPLEMENT SOME HOTP/60/XXXX TO EASIER IMPLEMENT TOTP + 60 STEP SIZE
-		SECRET VARCHAR(255) NOT NULL DEFAULT '' COMMENT='BASE32 ENCODED SECRET (TOTP/HOTP)',
-		TIME_STEP INT NOT NULL DEFAULT 0,
-		COUNTER_TIME_SKEW INT NOT NULL DEFAULT 0 COMMENT='TRY AN OLDER/NEWER OTP PASSWORD, THIS ALLOW TIME SINCRONIZATION OR SYNC A COUNTER',
-		BRUTE_FORCE_MAX INT NOT NULL DEFAULT '0' COMMENT='MAX WRONG LOGIN COUNTER',
-		BRUTE_FORCE_TIMEOUT DOUBLE NOT NULL DEFAULT '0' COMMENT='WAIT X SECONDS IF GOT BRUTE FORCE ATTACK',
-		ONE_ACCESS ENUM('Y','N') NOT NULL DEFAULT 'N' COMMENT='ONLY ALLOW ONE ACCESS PER OTP PASSWORD (TOTP)',
-		LAST_ACCESS_OTP DOUBLE NOT NULL DEFAULT '0' COMMENT='LAST LOGIN VALUE TO CALCULATE OTP',
-		LAST_ACCESS_OTP_SKEW INT NOT NULL DEFAULT '0' COMMENT='LAST LOGIN SKEW VALUE TO CALCULATE OTP (don t allow current skew>last skew value),
-		BRUTE_FORCE_COUNTER INT NOT NULL DEFAULT '0' COMMENT='CURRENT BRUTE FORCE COUNTER',
-		BRUTE_FORCE_BLOCK_TIME DOUBLE NOT NULL DEFAULT '0' COMMENT= 'NEXT ALLOWED LOGIN',
-		WELLKNOWN_PASSWORDS BLOB NOT NULL DEFAULT '' COMMENT='WELL KNOWN PASSWORD SEPARATED BY ;'
-		PRIMARY KEY (USER) 
-	)
-	
-	TODO: SHOULD WE USE RULES LIKE OTP, FOR EXAMPLE MANY USERS WITH SAME OTP?
-*/
-
 
   /* implement well known password check ?*/
   if(well_know_password>0){
