@@ -31,7 +31,8 @@ function create_totp(); /* 	http://www.nongnu.org/oath-toolkit/ */
 function create_hotp(); /* 	http://www.nongnu.org/oath-toolkit/ */
 function create_skey(); /* 	ftp://ftp.ntua.gr/mirror/skey/skey/
 				http://0x9900.com/blog/2013/08/28/two-factor-authentication-with-ssh-&-s/key-on-openbsd/ */
-function create_user_otp(); /* receive user otp table row and select what key should be used */
+function create_user_otp(); /*	receive user otp table row and select what key should be used 
+				https://code.google.com/p/google-authenticator/source/browse/#git%2Flibpam */
 
 /********************* AUTH PLUGIN ****************************************/
 static int otp_auth_interface(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *info)
