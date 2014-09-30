@@ -120,6 +120,9 @@ static int otp_auth_interface(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *inf
   
 
   current_time=startup_time=now();
+  /* now =>   my_hrtime_t qc_info_now= my_hrtime();   qc_info_now.val  = unix timestamp */
+  
+  
   current_counter=startup_counter=get_from_otp_table;
   while(1){
     // (1) CHECK IF OTP IS OK
