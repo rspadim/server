@@ -37,6 +37,34 @@ function create_user_otp(); /*	receive user otp table row and select what key sh
 /********************* AUTH PLUGIN ****************************************/
 static int otp_auth_interface(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *info)
 {
+/*
+the structure...
+
+1)get information from otp table   
+2) check brute force
+3) restart brute force after timeout
+4) ask user password / otp password
+5) increase brute force if bad password
+6) check wellknown password
+6.1) remove used wellknown password
+7) save startup time and counter (memory only)
+8) start a skew while loop (even with skew=0)
+9) create otp using current counter/time
+10) check created otp with user otp
+10.1) if ok check only one login otp
+10.2) increase brute force counter if not match
+10.3) accept login if match and one login is ok, or one login is off
+11) if we have skew, increase counter based at current skew counter + startup time/counter
+11.1) check if we got max skew, if not  start loop again (8) 
+12) if we don't have a otp match, and we got max of skew counter, we got a bad password, increase brute force counter
+
+13) end =] source should not get here, since the while loop don't have a end, the end is: skew counter = max skew value from user table (check that we need a max value or we can get a DoS with very big values, i think a tinyint is ok)
+
+
+*/
+	
+	
+	
   unsigned char *pkt;
   int pkt_len;
   /* CHECK BRUTE FORCE, IF BRUTE FORCE CONDITION DON'T ALLOW LOGIN */
