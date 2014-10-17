@@ -15,32 +15,122 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
 // based at dialog_example.c example file
-    
+/* INCLUDES */    
 #include <mysql/plugin_auth.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <mysql/auth_dialog_client.h>
 
+/* MYSQL SCHEMA TABLE STRUCTURE */
+/*
+CREATE TABLE `otp_user` (
+  `Host` varchar(60) NOT NULL DEFAULT '' COMMENT 'same value of host column of mysql.user',
+  `User` varchar(16) NOT NULL DEFAULT '' COMMENT 'same value of user column of mysql.user',
+  `otp_type` enum('TOTP','HOTP') NOT NULL DEFAULT 'TOTP' COMMENT 'OTP TYPE',
+  `secret` varchar(255) NOT NULL DEFAULT '' COMMENT 'otp password, each otp_type have a format',
+  `time_step` int(11) NOT NULL DEFAULT '0' COMMENT 'totp time slice, floor(time/time_step)*time_step',
+  `counter_time_skew` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'totp/hotp password skew, try others password time;time-30;time+30;etc, should not be big or possible DoS',
+  `brute_force_max` int(11) NOT NULL DEFAULT '0' COMMENT 'max brute force counter',
+  `brute_force_timeout` double NOT NULL DEFAULT '0' COMMENT 'how many seconds should wait after brute force detection',
+  `one_access` enum('Y','N') NOT NULL DEFAULT 'N' COMMENT 'ONLY ALLOW ONE ACCESS PER OTP PASSWORD (TOTP)',
+  `last_used_otp` bigint(20) NOT NULL DEFAULT '0' COMMENT 'last used otp (time in seconds or counter), use bigint since we can use >2039 year value',
+  `brute_force_counter` int(11) NOT NULL DEFAULT '0' COMMENT 'current brute force counter, change to 0 to remove current brute force block',
+  `brute_force_block_time` bigint(20) NOT NULL DEFAULT '0' COMMENT 'next allowed login after brute force detected, change to 0 to remove current brute force block',
+  `wellknown_passwords` text NOT NULL COMMENT 'wellknow password separated by ";" character',
+  PRIMARY KEY (`Host`,`User`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8
+
+*/
+/* STRUCTS / ENUMS */
+
+enum otp_user_columns{
+  HOST,
+  USER,
+  OTP_TYPE,
+  SECRET,
+  TIME_STEP,
+  COUNTER_TIME_SKEW,
+  BRUTE_FORCE_MAX,
+  BRUTE_FORCE_TIMEOUT,
+  ONE_ACCESS_ENUM,
+  LAST_USED_OTP,
+  BRUTE_FORCE_COUNTER,
+  BRUTE_FORCE_BLOCK_TIME,
+  WELLKNOWN_PASSWORDS
+};
+
+enum otp_type{
+  TOTP,
+  HOTP
+};
+
+/* sufix:
+   ct = counter and/or time 
+   bg = brute force
+*/
+struct otp_user_info{	
+  enum otp_type otp_type;	/* totp or hotp */
+  char *secret;			/* secreat text, normally a base32 value */
+  unsigned int time_step;	/* time step, for example a new otp each 30 seconds */
+  unsigned int ct_skew;		/* ct retries with different values (allow time sync) */
+  unsigned int bf_max;		/* bf max counter */
+  double bf_timeout;		/* seconds to lock user login */
+  bool one_access;		/* true/false if we only allow one connection per otp  */
+  double last_access;		/* unix time stamp */
+  unsigned int bf_count;	/* 
+  unsigned int bg_block_time;	/* unix time stamp */
+  char *wellknown_passwords;	/* must check how to create a list of passwords separated by ";" */
+  bool struct_changed;		/* true = must update table */
+};
+/* PLUGIN FUNCTIONS */
+
+
 /* TODO: 
    IMPLEMENT TOTP PASSWORD GENERATOR FUNCTION (GENERATE A PASSWORD WITH TIME+KEY+TIME_STEP)
    IMPLEMENT HOTP PASSWORD GENERATOR FUNCTION (GENERATE A PASSWORD WITH COUNTER+KEY)
    IMPLEMENT S/KEY PASSWORD - SAME AS HOTP BUT USING S/KEY LOGIC
 */
-function create_totp(); /* 	http://www.nongnu.org/oath-toolkit/ */
-function create_hotp(); /* 	http://www.nongnu.org/oath-toolkit/ */
-function create_skey(); /* 	ftp://ftp.ntua.gr/mirror/skey/skey/
-				http://0x9900.com/blog/2013/08/28/two-factor-authentication-with-ssh-&-s/key-on-openbsd/ */
-function create_user_otp(); /*	receive user otp table row and select what key should be used 
-				https://code.google.com/p/google-authenticator/source/browse/#git%2Flibpam */
+bool read_otp_table(host,user,otp_structure){		/* return false/true, false = no login, maybe otp table don't exists? */
+}
+bool write_otp_table(host,user,otp_structure){		/* return false/true, false = error while writing to table */
+}
+bool check_and_update_wkn_password(password,otp_structure){/* return false/true, false = no password match, update the structure if found, removing the password */
+}
+void remove_wkn_password(password_list,password_id){ /* help function to check_and_update_wkn_password() function */
+}
+void brute_force_incr(otp_user_info* otp_row){
+  if(otp_row.bf_count<otp_row.bf_max){
+    otp_row.bf_count++;	/* possible problem with overflow ? */
+    otp_row.changed=TRUE;
+  }
+}
+void brute_force_reset(otp_user_info* otp_row){
+  otp_row.bf_count=0;
+  otp_row.bg_block_time=0;
+  otp_row.changed=TRUE;
+}
 
-/********************* AUTH PLUGIN ****************************************/
+void create_totp(){ /* 	http://www.nongnu.org/oath-toolkit/ */
+}
+void create_hotp(){ /* 	http://www.nongnu.org/oath-toolkit/ */
+}
+void create_skey(){ /* 	ftp://ftp.ntua.gr/mirror/skey/skey/
+				http://0x9900.com/blog/2013/08/28/two-factor-authentication-with-ssh-&-s/key-on-openbsd/ */
+}
+void create_user_otp(otp_user_info* otp_row){ 
+			/*	receive user otp table row and select what key should be used 
+				https://code.google.com/p/google-authenticator/source/browse/#git%2Flibpam */
+  
+}
+
+/* MYSQL AUTH PLUGIN FUNCTIONS */
 static int otp_auth_interface(MYSQL_PLUGIN_VIO *vio, MYSQL_SERVER_AUTH_INFO *info)
 {
 /*
 the structure...
 
-1)get information from otp table   
+1) get information from otp table   
 2) check brute force
 3) restart brute force after timeout
 4) ask user password / otp password
@@ -61,53 +151,37 @@ the structure...
 13) end =] source should not get here, since the while loop don't have a end, the end is: skew counter = max skew value from user table (check that we need a max value or we can get a DoS with very big values, i think a tinyint is ok)
 
 
-
-TABLE STRUCTURE:
-show create table otp_user
-
-CREATE TABLE `otp_user` (
-  `Host` varchar(60) NOT NULL DEFAULT '' COMMENT 'same value of host column of mysql.user',
-  `User` varchar(16) NOT NULL DEFAULT '' COMMENT 'same value of user column of mysql.user',
-  `otp_type` enum('TOTP','HOTP') NOT NULL DEFAULT 'TOTP' COMMENT 'OTP TYPE',
-  `secret` varchar(255) NOT NULL DEFAULT '' COMMENT 'otp password, each otp_type have a format',
-  `time_step` int(11) NOT NULL DEFAULT '0' COMMENT 'totp time slice, floor(time/time_step)*time_step',
-  `counter_time_skew` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'totp/hotp password skew, try others password time;time-30;time+30;etc, should not be big or possible DoS',
-  `brute_force_max` int(11) NOT NULL DEFAULT '0' COMMENT 'max brute force counter',
-  `brute_force_timeout` double NOT NULL DEFAULT '0' COMMENT 'how many seconds should wait after brute force detection',
-  `one_access` enum('Y','N') NOT NULL DEFAULT 'N' COMMENT 'ONLY ALLOW ONE ACCESS PER OTP PASSWORD (TOTP)',
-  `last_used_otp` bigint(20) NOT NULL DEFAULT '0' COMMENT 'last used otp (time in seconds or counter), use bigint since we can use >2039 year value',
-  `last_access_otp_skew` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'last used otp skew value, last_used otp + last_used skew will allow a better one access',
-  `brute_force_counter` int(11) NOT NULL DEFAULT '0' COMMENT 'current brute force counter, change to 0 to remove current brute force block',
-  `brute_force_block_time` bigint(20) NOT NULL DEFAULT '0' COMMENT 'next allowed login after brute force detected, change to 0 to remove current brute force block',
-  `wellknown_passwords` text NOT NULL COMMENT 'wellknow password separated by ";" character',
-  PRIMARY KEY (`Host`,`User`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8
-
-*/
-	
+*/	
 	
 	
   unsigned char *pkt;
   int pkt_len;
-  /* CHECK BRUTE FORCE, IF BRUTE FORCE CONDITION DON'T ALLOW LOGIN */
-  if(user_brute_force_counter>max_user_brute_force_counter && max_user_brute_force_counter>0){
-    if(user_brute_force_time>now())
+  my_hrtime_t startup_time= my_hrtime();	/* unix time stamp from current time */
+  otp_user_info otp_row;
+  
+  /* 1)get information from otp table  */
+  read_otp_table(host,user,otp_row);
+  
+  /* 2) check brute force */
+  if(otp_row.bf_max>0 && otp_row.bf_count>=otp_row.bf_max){
+    if(otp_row.bg_block_time>startup_time.val)
       return CR_ERROR; /* sorry */
-    user_brute_force_counter=0;
-    reset_brute_force_counter(); /* save to table */
+    brute_force_reset(otp_row);
   }
   
   /* send a password question */
   if (vio->write_packet(vio,
                         (const unsigned char *) PASSWORD_QUESTION "Password, please:",
-                        18))
-    return CR_ERROR; /* ?increase brute force counter? */
+                        18)){
+    brute_force_incr(otp_row);
+    write_otp_table();
+    return CR_ERROR;
+  }
 
   /* read the answer */
   if ((pkt_len= vio->read_packet(vio, &pkt)) < 0){
-    /* MUST CHECK HOW NULL PASSWORD WORKS */
-    /* INCREASE BRUTE FORCE COUNTER */
-    increase_brute_force_counter();
+    brute_force_incr(otp_row);
+    write_otp_table();
     return CR_ERROR;
   }
   info->password_used= PASSWORD_USED_YES;
@@ -115,43 +189,42 @@ CREATE TABLE `otp_user` (
   /* fail if the password is wrong */
   // check with mysql.users table
   if (strcmp((const char *) pkt, info->auth_string)){
-    /* INCREASE BRUTE FORCE COUNTER */
-    increase_brute_force_counter();
+    brute_force_incr(otp_row);
+    write_otp_table();
     return CR_ERROR;
   }
 
   /* send otp question */
   if (vio->write_packet(vio,
                         (const unsigned char *) LAST_QUESTION "OTP:", /* INCLUDE OTP TYPE? */
-                        5))
-    return CR_ERROR; /* ?increase brute force counter? */
+                        5)){
+    brute_force_incr(otp_row);	/* ?increase brute force counter? */
+    write_otp_table();		/* must save if we reseted bf at startup */
+    return CR_ERROR;
+  }
 
   /* read the answer */
   if ((pkt_len= vio->read_packet(vio, &pkt)) < 0){
-    /* INCREASE BRUTE FORCE COUNTER */
-    increase_brute_force_counter();
+    brute_force_incr(otp_row);
+    write_otp_table();
     return CR_ERROR;
   }
 
   /* check the reply */
 
   /* implement well known password check ?*/
-  if(well_know_password>0){
-    /* check if we got a well_know_password */
-    if (wkp_found()){
-      remove_current_well_know_password_from_table();
-      /*login ok*/
-      reset_brute_force_counter();
-      // (LOGIN) SYNC COUNTER IF USING SKEY/HOTP
-      return CR_OK;
-    }
+  if(check_and_update_wkn_password(pkt,otp_structure)){
+    /*login ok*/
+    brute_force_reset(otp_row);
+    write_otp_table();
+    return CR_OK;
   }
   
 
-  current_time=startup_time=now();
+  
   /* now =>   my_hrtime_t qc_info_now= my_hrtime();   qc_info_now.val  = unix timestamp */
   
-  
+  startup_time.val
   current_counter=startup_counter=get_from_otp_table;
   while(1){
     // (1) CHECK IF OTP IS OK
@@ -194,7 +267,9 @@ static struct st_mysql_auth otp_handler=
   otp_auth_interface
 };
 
-/********************* UDF FUNCTION ****************************************/
+
+
+/* MYSQL UDF FUNCTIONS */
 /* 
 	TODO: include a function to test OTP, 
 	for example SELECT GET_OTP('USER') 
@@ -224,8 +299,6 @@ my_bool GET_OTP_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
 */
     return 0;
 }
-
-/* This routine frees the memory allocated */
 void GET_OTP_deinit(UDF_INIT *initid) {
     if (initid->ptr)
         free(initid->ptr);
