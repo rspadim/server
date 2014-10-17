@@ -164,6 +164,35 @@ void bf_block(otp_user_info* otp_row){
   otp_row.bf_block_time=now.val + otp_row.bf_timeout;
   otp_row.changed=TRUE;
 }
+/* helper function to calculate time value */
+double calc_time(double time,unsigned int skew,unsigned int time_step){
+  // skew % 2 = 0 => add to initial time
+  // skew % 2 = 1 => sub from initial time
+  // skew =0 return time/time_step
+  double ret=0;
+  ret=floor(time / time_step) * time_step;
+  if(skew==0) return ret;
+  if(skew % 2 == 0){
+    ret=ret + (skew>>1)*time_step;
+  }else{
+    ret=ret - (skew>>1)*time_step;
+  }
+  return ret;
+}
+/* helper function to calculate counter value */
+unsigned int calc_counter(unsigned int cur,unsigned int skew){
+  // skew % 2 = 0 => add to initial counter
+  // skew % 2 = 1 => sub from initial counter
+  // skew =0 return counter
+  if(skew==0) return cur;
+  unsigned int ret=0;
+  if(skew % 2 == 0){
+    ret=cur + (skew>>1);
+  }else{
+    ret=cur - (skew>>1);
+  }
+  return ret;
+}
 
 
 
@@ -310,12 +339,12 @@ the structure...
   
   
   
-  current_counter=startup_counter=otp_row.counter;
-  current_time=startup_time=now.val;	/* now =>   my_hrtime_t qc_info_now= my_hrtime();   qc_info_now.val  = unix timestamp */
   while(1){
     /* 8) start a skew while loop (even with skew=0) */
-    otp_row.calc_counter=0;	/* update calc counter with new skew value, based at startup counter + current skew */
-    otp_row.calc_time=0;	/* update calc time with new skew value, based at startup time + current skew */
+    /* update calc counter with new skew value, based at startup counter + current skew */
+    otp_row.calc_counter=calc_counter(otp_row.counter,cur_skew);
+    /* update calc time with new skew value, based at startup time + current skew */
+    otp_row.calc_time=calc_time(now.val,cur_skew,otp.time_step);
     cur_skew++;
     /* 9) create otp using current counter/time */
     create_user_otp(otp_row,current_otp_password);
