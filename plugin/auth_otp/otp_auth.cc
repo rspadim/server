@@ -344,7 +344,7 @@ the structure...
     /* update calc counter with new skew value, based at startup counter + current skew */
     otp_row.calc_counter=calc_counter(otp_row.counter,cur_skew);
     /* update calc time with new skew value, based at startup time + current skew */
-    otp_row.calc_time=calc_time(now.val,cur_skew,otp.time_step);
+    otp_row.calc_time=calc_time(now.val,cur_skew,otp_row.time_step);
     cur_skew++;
     /* 9) create otp using current counter/time */
     create_user_otp(otp_row,current_otp_password);
@@ -411,26 +411,19 @@ static struct st_mysql_auth otp_handler=
 	before allowing user to login and start brute force counter
 */
 my_bool GET_OTP_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
-    if (args->arg_count > 1) {
-        strmov(message,"Usage: GET_OTP( <user_name> )"); /* use same primary key as otp table */
+    if (args->arg_count > 2) {
+        strmov(message,"Usage: GET_OTP( <host> , <user_name> )");
         return 1;
     }
-    if (args->arg_count == 1) {
-        // one specific user OTP
-	check permission (GRANT);
-        args->arg_type[0] = STRING_RESULT;
+    if (args->arg_count == 2) {
+        // one specific user
+	/* check permission (GRANT level ) */
+        if (check_global_access(thd, PROCESS_ACL, true))
+          return 1; /* error */
     } else {
 	// current user OTP 
-	/*use the current username*/
+	/* how to get current user? */
     }
-/*
-    if ( !(initid->ptr = 
-        (char *) malloc( sizeof(char) * MAX_IMAGE_SIZE ) ) ) {
-        strmov(message, "Couldn't allocate memory!");
-        return 1;
-    }
-    bzero( initid->ptr, sizeof(char) * MAX_IMAGE_SIZE );
-*/
     return 0;
 }
 void GET_OTP_deinit(UDF_INIT *initid) {
@@ -441,15 +434,20 @@ void GET_OTP_deinit(UDF_INIT *initid) {
 /* Return NULL if can't get a OTP */
 char *GET_OTP(UDF_INIT *initid, UDF_ARGS *args, char *result,
                unsigned long *length, char *is_null, char *error) {
-/*
-	strncpy( filename, args->args[0], args->lengths[0] );
-
-	*is_null = 1;	
-        return 0;
-*/
-    with the current user information, return the current OTP password using create_user_otp() function;
-
-    *length = (unsigned long)some_size;
+    /* with the current user information, return the current OTP password using create_user_otp() function; */
+    my_hrtime_t now= my_hrtime();	/* unix time stamp from current time */
+    char otp_password
+    otp_user_info otp_row;
+    
+    if(read_otp_table(args->args[0],args->args[1],otp_row)!=TRUE){
+	*is_null = 1;
+	return 0;
+    }
+    otp_row.calc_counter=otp_row.counter;
+    otp_row.calc_time=calc_time(now.val,0,otp_row.time_step);
+    create_user_otp(otp_user_info* otp_row,char* otp_password){
+    
+    *length = (unsigned long)strlen(otp_password);
     return initid->ptr;
 }
 
@@ -472,5 +470,4 @@ mysql_declare_plugin(dialog)
   NULL,
   0,
 }mysql_declare_plugin_end;
-
 
