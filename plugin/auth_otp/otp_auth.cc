@@ -125,6 +125,8 @@ bool write_otp_table(host,user,otp_structure){		/* return false/true, false = er
   // close table
   // return true
 }
+bool create_userotp_from_string(host,use,auth_string){
+}
 /* helper function to check if we found a well known password, and if found remove it from list and return true */
 bool check_and_update_wkn_password(password,otp_structure){/* return false/true, false = no password match, update the structure if found, removing the password */
   // interact wkn password list (maybe a hash index?)
@@ -267,7 +269,11 @@ the structure...
   otp_user_info otp_row;
   
   /* 1)get information from otp table  */
-  read_otp_table(host,user,otp_row);
+  if(read_otp_table(host,user,otp_row)!=TRUE){
+    // create from auth string ?
+    if(create_userotp_from_string!=TRUE)
+      return CR_ERROR; /* sorry */
+  }
   
   /* 2) check brute force */
   if(otp_row.bf_max>0 && otp_row.bf_count>=otp_row.bf_max){
