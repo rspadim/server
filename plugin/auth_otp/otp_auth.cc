@@ -30,11 +30,13 @@ CREATE TABLE `otp_user` (
   `otp_type` enum('TOTP','HOTP') NOT NULL DEFAULT 'TOTP' COMMENT 'OTP TYPE',
   `secret` varchar(255) NOT NULL DEFAULT '' COMMENT 'otp password, each otp_type have a format',
   `time_step` int(11) NOT NULL DEFAULT '0' COMMENT 'totp time slice, floor(time/time_step)*time_step',
+  `counter` int(11) NOT NULL DEFAULT '0' COMMENT 'hotp counter',
   `counter_time_skew` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'totp/hotp password skew, try others password time;time-30;time+30;etc, should not be big or possible DoS',
   `brute_force_max` int(11) NOT NULL DEFAULT '0' COMMENT 'max brute force counter',
   `brute_force_timeout` double NOT NULL DEFAULT '0' COMMENT 'how many seconds should wait after brute force detection',
   `one_access` enum('Y','N') NOT NULL DEFAULT 'N' COMMENT 'ONLY ALLOW ONE ACCESS PER OTP PASSWORD (TOTP)',
-  `last_used_otp` bigint(20) NOT NULL DEFAULT '0' COMMENT 'last used otp (time in seconds or counter), use bigint since we can use >2039 year value',
+  `last_used_counter` bigint(20) NOT NULL DEFAULT '0' COMMENT 'last used counter',
+  `last_used_time` double NOT NULL DEFAULT '0' COMMENT 'last used time',
   `brute_force_counter` int(11) NOT NULL DEFAULT '0' COMMENT 'current brute force counter, change to 0 to remove current brute force block',
   `brute_force_block_time` bigint(20) NOT NULL DEFAULT '0' COMMENT 'next allowed login after brute force detected, change to 0 to remove current brute force block',
   `wellknown_passwords` text NOT NULL COMMENT 'wellknow password separated by ";" character',
@@ -55,11 +57,13 @@ enum otp_user_columns{
   OTP_TYPE,
   SECRET,
   TIME_STEP,
+  COUNTER,
   COUNTER_TIME_SKEW,
   BRUTE_FORCE_MAX,
   BRUTE_FORCE_TIMEOUT,
   ONE_ACCESS_ENUM,
-  LAST_USED_OTP,
+  LAST_USED_COUNTER,
+  LAST_USED_TIME,
   BRUTE_FORCE_COUNTER,
   BRUTE_FORCE_BLOCK_TIME,
   WELLKNOWN_PASSWORDS
@@ -78,24 +82,25 @@ struct otp_user_info{
   enum otp_type otp_type;	/* totp or hotp */
   char *secret;			/* secreat text, normally a base32 value */
   unsigned int time_step;	/* time step, for example a new otp each 30 seconds */
+  unsigned int counter;		/* hotp counter */
   unsigned int ct_skew;		/* ct retries with different values (allow time sync) */
   unsigned int bf_max;		/* bf max counter */
   double bf_timeout;		/* seconds to lock user login */
   bool one_access;		/* true/false if we only allow one connection per otp  */
+  unsigned int last_counter;	
+  double last_time;		/* unix time stamp */
   double last_access;		/* unix time stamp */
-  unsigned int bf_count;	/* 
-  unsigned int bg_block_time;	/* unix time stamp */
+  unsigned int bf_count;
+  unsigned int bf_block_time;	/* unix time stamp */
   char *wellknown_passwords;	/* must check how to create a list of passwords separated by ";" */
+  
   bool struct_changed;		/* true = must update table */
+  unsigned int calc_counter;	/* used to calculate hotp */
+  double calc_time;		/* used to calculate totp */
 };
 /* PLUGIN FUNCTIONS */
 
-
-/* TODO: 
-   IMPLEMENT TOTP PASSWORD GENERATOR FUNCTION (GENERATE A PASSWORD WITH TIME+KEY+TIME_STEP)
-   IMPLEMENT HOTP PASSWORD GENERATOR FUNCTION (GENERATE A PASSWORD WITH COUNTER+KEY)
-   IMPLEMENT S/KEY PASSWORD - SAME AS HOTP BUT USING S/KEY LOGIC
-*/
+/* helper function to read otp row */
 bool read_otp_table(host,user,otp_structure){		/* return false/true, false = no login, maybe otp table don't exists? */
   // open table
   //   return false if error (table not found)
@@ -110,6 +115,7 @@ bool read_otp_table(host,user,otp_structure){		/* return false/true, false = no 
   
   // return true
 }
+/* helper functino to write otp row */
 bool write_otp_table(host,user,otp_structure){		/* return false/true, false = error while writing to table */
   // open table
   //   return false if error (table not found)
@@ -119,6 +125,7 @@ bool write_otp_table(host,user,otp_structure){		/* return false/true, false = er
   // close table
   // return true
 }
+/* helper function to check if we found a well known password, and if found remove it from list and return true */
 bool check_and_update_wkn_password(password,otp_structure){/* return false/true, false = no password match, update the structure if found, removing the password */
   // interact wkn password list (maybe a hash index?)
   // if not found, return false
@@ -126,6 +133,7 @@ bool check_and_update_wkn_password(password,otp_structure){/* return false/true,
   // mark otp_structure as changed
   // return true
 }
+/* helper function to increase brute force counter */
 void brute_force_incr(otp_user_info* otp_row){
   // check if we will not overflow
   if(otp_row.bf_count<otp_row.bf_max){
@@ -133,11 +141,32 @@ void brute_force_incr(otp_user_info* otp_row){
     otp_row.changed=TRUE;
   }
 }
+/* helper function to reset brute force counter */
 void brute_force_reset(otp_user_info* otp_row){
   otp_row.bf_count=0;
-  otp_row.bg_block_time=0;
+  otp_row.bf_block_time=0;
   otp_row.changed=TRUE;
 }
+/* helper function to sync calc time/counter to table counter */
+void sync_otp_counter_time(otp_user_info* otp_row){
+  otp_row.counter=otp_row.calc_counter;
+  otp_row_changed=TRUE;
+}
+/* helper function to sync last access */
+void sync_last_access(otp_user_info* otp_row){
+  my_hrtime_t now= my_hrtime();	/* unix time stamp from current time */
+  otp_row.last_access=now.val;
+  otp_row.changed=TRUE;
+}
+/* helper function to bf block */
+void bf_block(otp_user_info* otp_row){
+  my_hrtime_t now= my_hrtime();	/* unix time stamp from current time */
+  otp_row.bf_block_time=now.val + otp_row.bf_timeout;
+  otp_row.changed=TRUE;
+}
+
+
+
 
 bool create_totp(otp_user_info* otp_row,char* otp_password){ /* 	http://www.nongnu.org/oath-toolkit/ */
   // get shared secret
@@ -182,9 +211,10 @@ the structure...
 2) check brute force
 3) restart brute force after timeout
 4) ask user password / otp password
-5) increase brute force if bad password
+5) increase brute force if bad password (or error)
 6) check wellknown password
 6.1) remove used wellknown password
+6.2) save structure and accept login
 7) save startup time and counter (memory only)
 8) start a skew while loop (even with skew=0)
 9) create otp using current counter/time
@@ -201,10 +231,10 @@ the structure...
 
 */	
 	
-	
+/* START OF DIALOG */
   unsigned char *pkt;
   int pkt_len;
-  my_hrtime_t startup_time= my_hrtime();	/* unix time stamp from current time */
+  my_hrtime_t now= my_hrtime();	/* unix time stamp from current time */
   otp_user_info otp_row;
   
   /* 1)get information from otp table  */
@@ -212,15 +242,17 @@ the structure...
   
   /* 2) check brute force */
   if(otp_row.bf_max>0 && otp_row.bf_count>=otp_row.bf_max){
-    if(otp_row.bg_block_time>startup_time.val)
+    if(otp_row.bf_block_time>now.val)
       return CR_ERROR; /* sorry */
+    /* 3) restart brute force after timeout */
     brute_force_reset(otp_row);
   }
   
-  /* send a password question */
+  /* 4) ask user password / otp password */
   if (vio->write_packet(vio,
                         (const unsigned char *) PASSWORD_QUESTION "Password, please:",
                         18)){
+    /* 5) increase brute force if bad password */
     brute_force_incr(otp_row);
     write_otp_table();
     return CR_ERROR;
@@ -228,84 +260,109 @@ the structure...
 
   /* read the answer */
   if ((pkt_len= vio->read_packet(vio, &pkt)) < 0){
+    /* 5) increase brute force if bad password */
     brute_force_incr(otp_row);
     write_otp_table();
     return CR_ERROR;
   }
   info->password_used= PASSWORD_USED_YES;
 
-  /* fail if the password is wrong */
-  // check with mysql.users table
+  /* CHECK USER PASSWORD (mysql.user table) */
   if (strcmp((const char *) pkt, info->auth_string)){
+    /* 5) increase brute force if bad password */
     brute_force_incr(otp_row);
     write_otp_table();
     return CR_ERROR;
   }
 
-  /* send otp question */
+  /* REQUEST OTP PASSWORD */
   if (vio->write_packet(vio,
                         (const unsigned char *) LAST_QUESTION "OTP:", /* INCLUDE OTP TYPE? */
                         5)){
-    brute_force_incr(otp_row);	/* ?increase brute force counter? */
+    /* 5) increase brute force if bad password */
+    brute_force_incr(otp_row);
     write_otp_table();		/* must save if we reseted bf at startup */
     return CR_ERROR;
   }
 
   /* read the answer */
   if ((pkt_len= vio->read_packet(vio, &pkt)) < 0){
+    /* 5) increase brute force if bad password */
     brute_force_incr(otp_row);
     write_otp_table();
     return CR_ERROR;
   }
-
-  /* check the reply */
-
-  /* implement well known password check ?*/
+/* END OF DIALOG */
+  
+  
+  /* 6) check wellknown password */
   if(check_and_update_wkn_password(pkt,otp_structure)){
-    /*login ok*/
+    /* 6.2) save structure and accept login */
     brute_force_reset(otp_row);
     write_otp_table();
     return CR_OK;
   }
   
 
+  /* 7) save startup time and counter (memory only) */
+  unsigned int cur_skew=0;
+  char* current_otp_password;	/* current password */
   
-  /* now =>   my_hrtime_t qc_info_now= my_hrtime();   qc_info_now.val  = unix timestamp */
   
-  startup_time.val
-  current_counter=startup_counter=get_from_otp_table;
+  
+  current_counter=startup_counter=otp_row.counter;
+  current_time=startup_time=now.val;	/* now =>   my_hrtime_t qc_info_now= my_hrtime();   qc_info_now.val  = unix timestamp */
   while(1){
-    // (1) CHECK IF OTP IS OK
-    current_otp_password = create_otp_password(
-    	otp_information,
-    	current_time,
-    	current_counter
-    	);
+    /* 8) start a skew while loop (even with skew=0) */
+    otp_row.calc_counter=0;	/* update calc counter with new skew value, based at startup counter + current skew */
+    otp_row.calc_time=0;	/* update calc time with new skew value, based at startup time + current skew */
+    cur_skew++;
+    /* 9) create otp using current counter/time */
+    create_user_otp(otp_row,current_otp_password);
+    
+    /* 10) check created otp with user otp */
     if (strcmp((const char *) pkt, current_otp_password)){
-      // (2) OK AND ONLY ONE LOGIN, CHECK LAST OTP = CURRENT OTP => (LOGIN)
-      // (3) IF OK AND NO ONLY ONE LOGIN => (LOGIN)
-      if ((one login == 'y' && last_otp_counter_timer==current_otp_counter_time) ||
-           one login != 'y'){
-        /*login ok*/
-        reset_brute_force_counter();
-        sync_counter (if using counter_time_skew)
-        // (LOGIN) SYNC COUNTER IF USING SKEY/HOTP
+      /* 10.1) if ok check only one login otp */
+      if (otp_row.one_access==FALSE){
+        /* 10.3) accept login if match and one login is ok, or one login is off */
+        brute_force_reset(otp_row);
+	/* sync current calc counter */
+	sync_otp_counter_time(otp_row);
+        write_otp_table();
         return CR_OK;
-      }else if (one login == 'y'){
-        increase_brute_force_counter();
-        return CR_ERROR;
+      }else if (otp_row.otp_type==TOTP && otp_row.last_time==otp_row.calc_time){
+        /* 10.3) accept login if match and one login is ok, or one login is off */
+        brute_force_reset(otp_row);
+	/* sync current calc counter */
+	sync_otp_counter_time(otp_row);
+        write_otp_table();
+        return CR_OK;
+      }else if (otp_row.otp_type==HOTP && otp_row.last_counter==otp_row.calc_counter){
+        /* 10.3) accept login if match and one login is ok, or one login is off */
+        brute_force_reset(otp_row);
+	/* sync current calc counter */
+	sync_otp_counter_time(otp_row);
+        write_otp_table();
+        return CR_OK;
       }
+      /* 10.2) increase brute force counter if not match */
+      brute_force_incr(otp_row);
+      write_otp_table();
+      return CR_ERROR;
     }
-    // (4) WRONG OTP CHECK IF WE SHOULD TRY AGAIN WITH TIME SKEW OR COUNTER SKEW (COUNTER_TIME_SKEW) IF TRUE, TRY AGAIN (1)
-    if(counter_time_skew>0){ /* must check how TOTP/HOTP/SKEY do, there's a RFC */
-      change_current_time_counter to a value before or after the startup_time/startup_counter;
-      continue; /*try again*/
+    
+    /* 11) if we have skew, increase counter based at current skew counter + startup time/counter */
+    if(cur_skew>otp_row.ct_skew){ /* must check how TOTP/HOTP/SKEY do, there's a RFC */
+      /* 11.1) check if we got max skew, if not  start loop again (8)  */
+      continue;
     }
-    // (5) WRONG OTP, INCREMENT BRUTE FORCE ATTACK COUNTER => DON'T ALLOW LOGIN
-    // sorry :(
-    increase_brute_force_counter();
+    /* 12) if we don't have a otp match, and we got max of skew counter, we got a bad password, increase brute force counter */
+    brute_force_incr(otp_row);
+    write_otp_table();
     return CR_ERROR;
   }
+  /* should never be here */
+  return CR_ERROR;
 }
 
 static struct st_mysql_auth otp_handler=
