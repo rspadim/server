@@ -42,6 +42,11 @@ CREATE TABLE `otp_user` (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8
 
 */
+
+/* Name of table where OTP information resides */
+const LEX_STRING db_name = {C_STRING_WITH_LEN("mysql")}
+const LEX_STRING table_name = {C_STRING_WITH_LEN("otp_user")}
+
 /* STRUCTS / ENUMS */
 
 enum otp_user_columns{
@@ -92,14 +97,37 @@ struct otp_user_info{
    IMPLEMENT S/KEY PASSWORD - SAME AS HOTP BUT USING S/KEY LOGIC
 */
 bool read_otp_table(host,user,otp_structure){		/* return false/true, false = no login, maybe otp table don't exists? */
+  // open table
+  //   return false if error (table not found)
+  // get host/user record
+  //   return false if not found
+  // read record
+  // close table
+  
+  // change record values to otp struct
+  // remove overflows / use currect limits (to avoid bf counter overflow for example)
+  // create a list of well known password
+  
+  // return true
 }
 bool write_otp_table(host,user,otp_structure){		/* return false/true, false = error while writing to table */
+  // open table
+  //   return false if error (table not found)
+  // find host/user record
+  //   return false if not found
+  // write record
+  // close table
+  // return true
 }
 bool check_and_update_wkn_password(password,otp_structure){/* return false/true, false = no password match, update the structure if found, removing the password */
-}
-void remove_wkn_password(password_list,password_id){ /* help function to check_and_update_wkn_password() function */
+  // interact wkn password list (maybe a hash index?)
+  // if not found, return false
+  // remove wkn password from list
+  // mark otp_structure as changed
+  // return true
 }
 void brute_force_incr(otp_user_info* otp_row){
+  // check if we will not overflow
   if(otp_row.bf_count<otp_row.bf_max){
     otp_row.bf_count++;	/* possible problem with overflow ? */
     otp_row.changed=TRUE;
@@ -111,17 +139,37 @@ void brute_force_reset(otp_user_info* otp_row){
   otp_row.changed=TRUE;
 }
 
-void create_totp(){ /* 	http://www.nongnu.org/oath-toolkit/ */
+bool create_totp(otp_user_info* otp_row,char* otp_password){ /* 	http://www.nongnu.org/oath-toolkit/ */
+  // get shared secret
+  // convert from base32 to totp base
+  //   if wrong base or blank secret, or any other erro -> return false
+  // create totp
+  // return true
 }
-void create_hotp(){ /* 	http://www.nongnu.org/oath-toolkit/ */
+bool create_hotp(otp_user_info* otp_row,char* otp_password){ /* 	http://www.nongnu.org/oath-toolkit/ */
+  // get shared secret
+  // convert from base32 to hotp base
+  //   if wrong base or blank secret, or any other erro -> return false
+  // create hotp
+  // return true
 }
-void create_skey(){ /* 	ftp://ftp.ntua.gr/mirror/skey/skey/
+bool create_skey(otp_user_info* otp_row,char* otp_password){ /* 	ftp://ftp.ntua.gr/mirror/skey/skey/
 				http://0x9900.com/blog/2013/08/28/two-factor-authentication-with-ssh-&-s/key-on-openbsd/ */
+  // get shared secret
+  // if wrong secret or blank secret, or any other erro -> return false
+  // create skey
+  // return true
 }
-void create_user_otp(otp_user_info* otp_row){ 
+bool create_user_otp(otp_user_info* otp_row,char* otp_password){ 
 			/*	receive user otp table row and select what key should be used 
 				https://code.google.com/p/google-authenticator/source/browse/#git%2Flibpam */
-  
+  if(otp_row.otp_type==TOTP)
+    return create_totp(otp_row,otp_password);
+  if(otp_row.otp_type==HOTP)
+    return create_totp(otp_row,otp_password);
+//  if(otp_row.otp_type==SKEY)
+//    return create_skey(otp_row,otp_password);
+  return FALSE;
 }
 
 /* MYSQL AUTH PLUGIN FUNCTIONS */
